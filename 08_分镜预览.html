@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四十六块的三天 · 分镜预览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --bg:#0d1014;
+    --panel:#151a20;
+    --line:#262e37;
+    --txt:#e8edf2;
+    --dim:#8b98a6;
+    --accent:#e08a5f;
+    --accent2:#6fa8a0;
+  }
+  html,body{ height:100%; }
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1c242d 0%, rgba(13,16,20,0) 60%),
+      var(--bg);
+    color:var(--txt);
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    padding:28px 16px 40px;
+    min-height:100%;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ width:100%; max-width:1080px; }
+
+  /* ---------- 顶部信息 ---------- */
+  .topbar{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:16px; margin-bottom:14px; flex-wrap:wrap;
+  }
+  .brand h1{
+    font-size:19px; font-weight:600; letter-spacing:2px;
+  }
+  .brand p{
+    font-size:12px; color:var(--dim); margin-top:5px; letter-spacing:1px;
+  }
+  .ai-badge{
+    font-size:11px; letter-spacing:1px; color:var(--accent);
+    border:1px solid rgba(224,138,95,.42);
+    background:rgba(224,138,95,.08);
+    padding:5px 10px; border-radius:999px; white-space:nowrap;
+  }
+
+  /* ---------- 舞台 ---------- */
+  .stage{
+    position:relative; width:100%; aspect-ratio:16/9;
+    background:#05070a; border-radius:14px; overflow:hidden;
+    border:1px solid var(--line);
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.02);
+    cursor:pointer;
+  }
+  .layer{ position:absolute; inset:0; }
+  .frameimg{
+    width:100%; height:100%; object-fit:contain; display:block;
+    background:#05070a;
+    opacity:0; transition:opacity .45s ease;
+  }
+  .frameimg.on{ opacity:1; }
+
+  /* 占位卡 */
+  .ph{
+    position:absolute; inset:0; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; text-align:center; padding:8% 12%;
+    background:
+      linear-gradient(135deg, rgba(111,168,160,.10), rgba(224,138,95,.08)),
+      repeating-linear-gradient(45deg, #1a2027 0 12px, #171d24 12px 24px);
+  }
+  .ph.on{ display:flex; }
+  .ph .tag{
+    font-size:11px; letter-spacing:3px; color:var(--accent2);
+    border:1px solid rgba(111,168,160,.4); padding:4px 10px; border-radius:4px;
+  }
+  .ph .no{ font-size:clamp(26px,5vw,46px); font-weight:700; letter-spacing:4px; color:#cfd8e2; }
+  .ph .d{ font-size:clamp(11px,1.5vw,14px); color:var(--dim); line-height:1.85; max-width:86%; }
+
+  /* 分镜角标 */
+  .hud{
+    position:absolute; top:14px; left:16px; right:16px;
+    display:flex; align-items:center; gap:10px; pointer-events:none;
+  }
+  .chip{
+    font-size:11px; letter-spacing:1px; padding:4px 9px; border-radius:5px;
+    background:rgba(6,9,12,.62); border:1px solid rgba(255,255,255,.10);
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    color:#d7dee6;
+  }
+  .chip.scene{ color:var(--accent2); }
+  .spacer{ flex:1; }
+  .pbar{
+    width:120px; height:4px; border-radius:2px; overflow:hidden;
+    background:rgba(255,255,255,.14);
+  }
+  .pbar i{ display:block; height:100%; width:0%; background:var(--accent); transition:width .12s linear; }
+
+  /* 字幕 */
+  .subwrap{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:0 6% 5.5%;
+    background:linear-gradient(to top, rgba(3,5,7,.82) 10%, rgba(3,5,7,.42) 55%, rgba(3,5,7,0) 100%);
+    display:flex; justify-content:center; pointer-events:none;
+  }
+  .sub{
+    font-size:clamp(14px,2.35vw,25px); font-weight:600; letter-spacing:1.5px;
+    color:#fff; text-align:center; line-height:1.5;
+    text-shadow:0 2px 14px rgba(0,0,0,.95), 0 0 2px rgba(0,0,0,.9);
+    opacity:0; transition:opacity .22s ease; max-width:92%;
+  }
+  .sub.on{ opacity:1; }
+
+  /* 片头 / 片尾 */
+  .cover{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    background:#07090c; opacity:0; transition:opacity .5s ease;
+    pointer-events:none; padding:6% 8%;
+  }
+  .cover.on{ opacity:1; }
+  .cover .t1{
+    font-size:clamp(21px,4.2vw,44px); font-weight:700; letter-spacing:.22em;
+    text-indent:.22em; color:#f2f5f8;
+  }
+  .cover .rule{
+    width:56px; height:1px; background:rgba(224,138,95,.7); margin:20px 0;
+  }
+  .cover .t2{
+    font-size:clamp(10px,1.5vw,13px); letter-spacing:.16em; color:#9aa7b4; line-height:2;
+  }
+  .cover .kor{
+    font-size:10px; letter-spacing:.32em; color:#5d6b78; margin-top:2px;
+  }
+  .outro .q{
+    font-size:clamp(13px,2.1vw,21px); font-weight:600; letter-spacing:.1em;
+    line-height:1.85; color:#f0f3f6; max-width:88%;
+  }
+  .outro .meta{
+    margin-top:22px; font-size:clamp(9px,1.28vw,12px); color:#7d8a97;
+    line-height:2.1; letter-spacing:.05em; max-width:92%;
+  }
+  .outro .meta em{ font-style:normal; color:#98a5b3; }
+
+  /* ---------- 控制条 ---------- */
+  .controls{
+    display:flex; align-items:center; gap:10px; margin-top:16px; flex-wrap:wrap;
+  }
+  button{
+    font-family:inherit; font-size:13px; letter-spacing:.6px;
+    color:var(--txt); background:var(--panel);
+    border:1px solid var(--line); border-radius:9px;
+    padding:10px 18px; cursor:pointer;
+    transition:background .18s, border-color .18s, transform .08s, color .18s;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  button:hover{ background:#1c232b; border-color:#39434f; }
+  button:active{ transform:translateY(1px); }
+  button.primary{
+    background:rgba(224,138,95,.14); border-color:rgba(224,138,95,.5); color:#f0a97f;
+  }
+  button.primary:hover{ background:rgba(224,138,95,.22); }
+  button svg{ width:13px; height:13px; fill:currentColor; }
+  .tcode{
+    margin-left:auto; font-size:12px; color:var(--dim);
+    font-variant-numeric:tabular-nums; letter-spacing:.06em;
+  }
+  .keys{ font-size:11px; color:#5d6b78; margin-top:10px; letter-spacing:.4px; }
+
+  /* ---------- 底部制作信息 ---------- */
+  .foot{
+    margin-top:26px; padding-top:18px; border-top:1px solid var(--line);
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:14px 26px; font-size:12px; color:var(--dim); line-height:1.9;
+  }
+  .foot b{ display:block; color:#c3ccd6; font-weight:600; font-size:12px; margin-bottom:2px; letter-spacing:.5px; }
+  .foot span{ color:#78838f; }
+
+  /* ---------- 分镜条 ---------- */
+  .strip{
+    display:flex; gap:8px; margin-top:18px; overflow-x:auto; padding-bottom:6px;
+    scrollbar-width:thin;
+  }
+  .strip::-webkit-scrollbar{ height:5px; }
+  .strip::-webkit-scrollbar-thumb{ background:#2b343d; border-radius:3px; }
+  .th{
+    flex:0 0 auto; width:94px; cursor:pointer; border-radius:7px; overflow:hidden;
+    border:1px solid var(--line); background:#12171c; position:relative;
+    transition:border-color .18s, transform .12s;
+  }
+  .th:hover{ transform:translateY(-2px); }
+  .th.act{ border-color:var(--accent); }
+  .th .tb{ position:relative; aspect-ratio:16/9; background:#0a0e12; }
+  .th img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .th .n{
+    position:absolute; left:4px; top:4px; font-size:10px;
+    background:rgba(0,0,0,.68); padding:1px 5px; border-radius:3px; color:#cfd8e2;
+  }
+  .th .tt{
+    font-size:10px; color:#8593a0; padding:4px 5px 5px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+
+  @media (max-width:640px){
+    body{ padding:16px 10px 28px; }
+    .brand h1{ font-size:16px; }
+    .stage{ border-radius:10px; }
+    button{ padding:9px 13px; font-size:12px; }
+    .tcode{ width:100%; margin-left:0; text-align:right; }
+    .pbar{ width:70px; }
+    .th{ width:74px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <h1>四十六块的三天</h1>
+      <p>校园财商微短剧 · 60 秒 / 8 镜 / 3 人 · 分镜预览</p>
+    </div>
+    <div class="ai-badge">本片画面由 AI 生成 · 课堂练习作品</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="layer">
+      <img class="frameimg" id="frame" alt="">
+      <div class="ph" id="ph">
+        <div class="tag">本镜图片待补</div>
+        <div class="no" id="phNo">01</div>
+        <div class="d" id="phDesc"></div>
+      </div>
+      <div class="cover" id="intro">
+        <div class="t1">四十六块的三天</div>
+        <div class="rule"></div>
+        <div class="t2">本片画面由 AI 生成 · 课堂练习作品</div>
+        <div class="kor">AI GENERATED · COURSEWORK</div>
+      </div>
+      <div class="cover outro" id="outro">
+        <div class="q">体面不是花钱买来的，<br>是有人愿意陪你坐下来吃饭。</div>
+        <div class="meta">
+          本片人物、场景、事件、台词均为课堂虚构素材，不含真实姓名、校名与品牌。<br>
+          <em>素材来源：第 1 课 · AI 短剧一站式制作 随课素材包（课堂虚构）</em><br>
+          制作日期：____ 年 __ 月 __ 日
+        </div>
+      </div>
+    </div>
+
+    <div class="hud">
+      <span class="chip" id="chipNo">片头</span>
+      <span class="chip scene" id="chipScene">00:00 / 01:08</span>
+      <span class="spacer"></span>
+      <span class="chip" id="chipSec">0.0s</span>
+      <span class="pbar"><i id="prog"></i></span>
+    </div>
+
+    <div class="subwrap"><div class="sub" id="sub"></div></div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="btnPlay">
+      <svg viewBox="0 0 24 24" id="icoPlay"><path d="M8 5v14l11-7z"/></svg>
+      <span id="lblPlay">播放</span>
+    </button>
+    <button id="btnPrev">
+      <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>上一镜
+    </button>
+    <button id="btnNext">
+      下一镜<svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
+    </button>
+    <button id="btnReplay">
+      <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/></svg>重播
+    </button>
+    <span class="tcode" id="tcode">00:00 / 01:08</span>
+  </div>
+  <div class="keys">快捷键：空格 播放/暂停 ｜ ← 上一镜 ｜ → 下一镜 ｜ R 重播</div>
+
+  <div class="strip" id="strip"></div>
+
+  <div class="foot">
+    <div><b>课程</b><span>第 1 课 · AI 短剧一站式制作（90 分钟实践课）</span></div>
+    <div><b>课次 / 规格</b><span>第 1 课 ｜ 60 秒 · 8 镜 · 3 人 · 16:9</span></div>
+    <div><b>制作日期</b><span>____ 年 __ 月 __ 日（提交前填写）</span></div>
+    <div><b>工具说明</b><span>WorkBuddy 一站式完成：剧本 · 分镜 · 图像生成 · 字幕 · 页面构建（WB-CHAT / WB-FILE / WB-IMAGE / WB-HTML）</span></div>
+    <div><b>AI 生成说明</b><span>全部 8 张分镜图由 WorkBuddy 图像生成能力按分镜表提示词产出，页面为纯 HTML 单文件、零外部依赖</span></div>
+    <div><b>素材声明</b><span>人物、场景、事件、台词均为课堂虚构，不含真实姓名、校名与品牌</span></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var DIR = '05_分镜图/';
+
+  var SHOTS = [
+    { n:1, dur:8, scene:'S1 宿舍·白天',    sub:'四十六块，还要撑三天', desc:'苏念在宿舍书桌前把零钱倒出来一枚一枚数，数到一半停住，把袋子反过来抖两下再没有更多。', img:'01.png' },
+    { n:2, dur:7, scene:'S1 宿舍·白天',    sub:'这顿我请',            desc:'苏念举起手机，群里跳出聚餐消息「AA 人均 88」，拇指停顿两秒后打下「我请客」发送。', img:'02.png' },
+    { n:3, dur:8, scene:'S3 食堂窗口·正午', sub:'白饭，加个汤',        desc:'刷卡机嘀一声，屏幕跳出余额 46.00，苏念只要了一份白饭和一勺免费汤，端着盘子走得很快。', img:'03.png' },
+    { n:4, dur:8, scene:'S4 超市货架·夜晚', sub:'八十八，等于三天饭钱', desc:'苏念拿起泡面看价签，放回原位；掏出手机打开计算器输入 88，盯着数字，然后锁屏空手离开。', img:'04.png' },
+    { n:5, dur:7, scene:'S5 走廊·傍晚',    sub:'你分期了？',          desc:'过肩镜头，苏念的手机停在分期确认页，周舟抱着记账本站在三步之外，眉头一点点皱紧。', img:'05.png' },
+    { n:6, dur:7, scene:'S2 宿舍·傍晚',    sub:'先算账，再请客',      desc:'苏念瘫在椅子里，周舟把记账本摊开推到桌面正中，陈可抱着膝忽然抬头，眼睛亮了。', img:'06.png' },
+    { n:7, dur:7, scene:'S2 宿舍·傍晚',    sub:'一元菜，也能凑一桌',  desc:'陈可把三个食堂打包盒摆上桌逐个揭盖，周舟倒水进纸杯，苏念坐着没动，眼睛睁大。', img:'07.png' },
+    { n:8, dur:8, scene:'S6 天台·黄昏',    sub:'这顿，我请',          desc:'三人举杯轻碰，苏念抱着贴了手写便签的玻璃罐，把零钱一枚一枚投进罐口，抬头笑了。', img:'08.png' }
+  ];
+
+  var INTRO = 3, OUTRO = 5;
+  var BODY = SHOTS.reduce(function(a,s){ return a + s.dur; }, 0);
+  var TOTAL = INTRO + BODY + OUTRO;
+
+  // 每镜起点
+  var STARTS = [], acc = INTRO;
+  SHOTS.forEach(function(s){ STARTS.push(acc); acc += s.dur; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  var stage = $('stage'), frame = $('frame'), ph = $('ph'),
+      phNo = $('phNo'), phDesc = $('phDesc'),
+      intro = $('intro'), outro = $('outro'), sub = $('sub'),
+      chipNo = $('chipNo'), chipScene = $('chipScene'), chipSec = $('chipSec'),
+      prog = $('prog'), tcode = $('tcode'), strip = $('strip'),
+      btnPlay = $('btnPlay'), lblPlay = $('lblPlay'), icoPlay = $('icoPlay');
+
+  var t = 0, playing = false, raf = null, lastTs = 0;
+  var curIdx = -99;         // -2 片头 / -1 片尾 / 0-7 镜
+  var okImg = {};           // 图片可用性缓存
+
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  function mmss(s){
+    s = Math.max(0, Math.min(TOTAL, s));
+    return pad(Math.floor(s / 60)) + ':' + pad(Math.floor(s % 60));
+  }
+
+  /* ---------- 分镜条 ---------- */
+  SHOTS.forEach(function(s, i){
+    var el = document.createElement('div');
+    el.className = 'th';
+    el.setAttribute('data-i', i);
+    el.innerHTML = '<div class="tb"><img alt=""><span class="n">' + pad(s.n) + '</span></div>' +
+                   '<div class="tt">' + s.sub + '</div>';
+    var im = el.querySelector('img');
+    im.onerror = function(){ im.style.display = 'none'; };
+    im.src = encodeURI(DIR + s.img);
+    el.onclick = function(){ seek(STARTS[i]); };
+    strip.appendChild(el);
+  });
+  var ths = strip.querySelectorAll('.th');
+
+  // 主画面图片加载失败时同样降级为占位卡，绝不出现浏览器破图
+  frame.onerror = function(){
+    if (curIdx >= 0){
+      okImg[curIdx] = false;
+      applyFrame(curIdx);
+    }
+  };
+
+  /* ---------- 图片预载 ---------- */
+  SHOTS.forEach(function(s, i){
+    var im = new Image();
+    im.onload  = function(){ okImg[i] = true;  if (curIdx === i) applyFrame(i); };
+    im.onerror = function(){ okImg[i] = false; if (curIdx === i) applyFrame(i); };
+    im.src = encodeURI(DIR + s.img);
+  });
+
+  /* ---------- 渲染某一镜 ---------- */
+  function applyFrame(i){
+    var s = SHOTS[i];
+    if (okImg[i] === false){
+      frame.classList.remove('on');
+      frame.removeAttribute('src');
+      ph.classList.add('on');
+      phNo.textContent = pad(s.n);
+      phDesc.textContent = s.desc;
+    } else {
+      ph.classList.remove('on');
+      if (frame.getAttribute('src') !== encodeURI(DIR + s.img)){
+        frame.src = encodeURI(DIR + s.img);
+      }
+      frame.classList.add('on');
+    }
+  }
+
+  function markStrip(i){
+    for (var k = 0; k < ths.length; k++){
+      if (k === i) ths[k].classList.add('act');
+      else ths[k].classList.remove('act');
+    }
+  }
+
+  /* ---------- 主渲染 ---------- */
+  function render(){
+    prog.style.width = (t / TOTAL * 100).toFixed(2) + '%';
+    tcode.textContent = mmss(t) + ' / ' + mmss(TOTAL);
+
+    var idx;
+    if (t < INTRO) idx = -2;
+    else if (t >= INTRO + BODY) idx = -1;
+    else {
+      idx = 0;
+      for (var i = SHOTS.length - 1; i >= 0; i--){
+        if (t >= STARTS[i]) { idx = i; break; }
+      }
+    }
+
+    if (idx !== curIdx){
+      curIdx = idx;
+      intro.classList.toggle('on', idx === -2);
+      outro.classList.toggle('on', idx === -1);
+      sub.classList.remove('on');
+
+      if (idx >= 0){
+        applyFrame(idx);
+        markStrip(idx);
+        chipNo.textContent = '镜 ' + pad(SHOTS[idx].n) + ' / 08';
+        chipScene.textContent = SHOTS[idx].scene;
+        chipSec.textContent = SHOTS[idx].dur + 's';
+        sub.textContent = SHOTS[idx].sub;
+        setTimeout(function(){ if (curIdx === idx) sub.classList.add('on'); }, 90);
+      } else {
+        markStrip(-1);
+        frame.classList.remove('on');
+        ph.classList.remove('on');
+        chipNo.textContent = (idx === -2) ? '片头' : '片尾';
+        chipScene.textContent = (idx === -2) ? '00:00 / ' + mmss(TOTAL) : '主题与素材来源';
+        chipSec.textContent = (idx === -2 ? INTRO : OUTRO) + 's';
+      }
+    } else if (idx >= 0){
+      // 同一镜内更新秒数
+      chipSec.textContent = (SHOTS[idx].dur - (t - STARTS[idx])).toFixed(1) + 's';
+    }
+  }
+
+  /* ---------- 播放循环 ---------- */
+  function loop(ts){
+    if (!playing) return;
+    if (!lastTs) lastTs = ts;
+    var dt = (ts - lastTs) / 1000;
+    lastTs = ts;
+    if (dt > 0.5) dt = 0.5;          // 切后台回来不跳帧
+    t += dt;
+    if (t >= TOTAL){
+      t = TOTAL;
+      render();
+      pause();
+      return;
+    }
+    render();
+    raf = requestAnimationFrame(loop);
+  }
+
+  function play(){
+    if (playing) return;
+    if (t >= TOTAL) t = 0;
+    playing = true; lastTs = 0;
+    lblPlay.textContent = '暂停';
+    icoPlay.innerHTML = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+    raf = requestAnimationFrame(loop);
+  }
+
+  function pause(){
+    playing = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = null; lastTs = 0;
+    lblPlay.textContent = '播放';
+    icoPlay.innerHTML = '<path d="M8 5v14l11-7z"/>';
+  }
+
+  function toggle(){ playing ? pause() : play(); }
+
+  function seek(v){
+    t = Math.max(0, Math.min(TOTAL - 0.01, v));
+    curIdx = -99;
+    render();
+  }
+
+  function prevShot(){
+    var idx = curIdx;
+    if (idx === -2){ seek(0); return; }
+    if (idx === -1){ seek(STARTS[SHOTS.length - 1]); return; }
+    var target = (t - STARTS[idx] > 1.2) ? idx : idx - 1;
+    if (target < 0) { seek(0); return; }
+    seek(STARTS[target]);
+  }
+
+  function nextShot(){
+    var idx = curIdx;
+    if (idx === -2){ seek(STARTS[0]); return; }
+    if (idx === -1){ seek(TOTAL - 0.01); return; }
+    if (idx >= SHOTS.length - 1){ seek(TOTAL - 0.01); return; }
+    seek(STARTS[idx + 1]);
+  }
+
+  /* ---------- 绑定 ---------- */
+  btnPlay.onclick  = function(e){ e.stopPropagation(); toggle(); };
+  $('btnPrev').onclick   = function(e){ e.stopPropagation(); prevShot(); };
+  $('btnNext').onclick   = function(e){ e.stopPropagation(); nextShot(); };
+  $('btnReplay').onclick = function(e){ e.stopPropagation(); seek(0); play(); };
+  stage.onclick = toggle;
+
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.code === 'Space'){ e.preventDefault(); toggle(); }
+    else if (e.code === 'ArrowLeft'){ e.preventDefault(); prevShot(); }
+    else if (e.code === 'ArrowRight'){ e.preventDefault(); nextShot(); }
+    else if (e.key === 'r' || e.key === 'R'){ e.preventDefault(); seek(0); play(); }
+  });
+
+  /* ---------- 启动 ---------- */
+  render();
+  lblPlay.textContent = '播放';
+
+  // 深链：?play=1 自动播放；?shot=4 定位到第 4 镜；?t=32.5 定位到第 32.5 秒（便于课堂演示与逐帧核验）
+  var qs = new URLSearchParams(location.search);
+  if (qs.has('t')){
+    var tv = parseFloat(qs.get('t'));
+    if (!isNaN(tv)) seek(tv);
+  } else if (qs.has('shot')){
+    var sNo = parseInt(qs.get('shot'), 10);
+    var si = -1;
+    for (var j = 0; j < SHOTS.length; j++){ if (SHOTS[j].n === sNo){ si = j; break; } }
+    if (si >= 0) seek(STARTS[si]);
+  }
+  if (qs.get('play') === '1') play();
+})();
+</script>
+</body>
+</html>
